@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>【老頑童動動腦】漢字眼力大考驗</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts for crisp Chinese KaiTi/Serif typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;900&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Noto Serif TC', 'KaiTi', 'BiauKai', serif;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        /* Green Chalkboard Texture */
+        .chalkboard-bg {
+            background-color: #064e3b;
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.15) 0%, rgba(4, 47, 38, 0.8) 100%),
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255, 255, 255, 0.015) 2px, rgba(255, 255, 255, 0.015) 4px);
+        }
+
+        /* High contrast mode */
+        .high-contrast-bg {
+            background-color: #0f172a;
+            background-image: radial-gradient(circle at 50% 50%, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 1) 100%);
+        }
+
+        /* Pulsing hint highlight */
+        @keyframes hintPulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.8); }
+            50% { transform: scale(1.08); box-shadow: 0 0 25px 8px rgba(234, 179, 8, 0.9); }
+        }
+        .hint-active {
+            animation: hintPulse 1s infinite;
+            z-index: 20;
+        }
+
+        /* Target found effect */
+        @keyframes correctPop {
+            0% { transform: scale(0.8); }
+            50% { transform: scale(1.25) rotate(-5deg); }
+            100% { transform: scale(1) rotate(0deg); }
+        }
+        .correct-active {
+            animation: correctPop 0.5s ease-out forwards;
+            background-color: #f59e0b !important;
+            color: #000000 !important;
+            border-color: #ffffff !important;
+        }
+
+        /* Shake animation for wrong selection */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-8px); }
+            40%, 80% { transform: translateX(8px); }
+        }
+        .shake-effect {
+            animation: shake 0.4s ease-in-out;
+        }
+
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="chalkboard-bg min-h-screen text-white flex flex-col justify-between overflow-x-hidden" id="appBody">
+
+    <!-- Confetti Overlay Canvas -->
+    <canvas id="confettiCanvas" class="fixed inset-0 pointer-events-none z-50"></canvas>
+
+    <!-- Header Navigation & Settings Bar -->
+    <header class="w-full bg-emerald-950/80 backdrop-blur-md border-b-4 border-amber-500/60 px-4 py-3 shadow-lg">
+        <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3">
+            
+            <!-- Logo / Title -->
+            <div class="flex items-center gap-3 cursor-pointer" onclick="goToMenu()">
+                <div class="w-11 h-11 bg-amber-400 text-emerald-950 rounded-2xl flex items-center justify-center font-black text-2xl shadow-md transform hover:scale-105 transition">
+                    腦
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-black text-amber-300 tracking-wide flex items-center gap-2">
+                        【老頑童動動腦】<span class="text-white text-base md:text-lg font-bold hidden sm:inline">漢字眼力大考驗</span>
+                    </h1>
+                    <p class="text-xs text-emerald-200">樂齡健腦 ‧ 視覺專注 ‧ 活化思維</p>
+                </div>
+            </div>
+
+            <!-- Accessibility & Control Tools -->
+            <div class="flex items-center gap-2 md:gap-3 flex-wrap">
+                <!-- Text Size Toggle -->
+                <button onclick="toggleFontSize()" title="調整字體大小" class="bg-emerald-800 hover:bg-emerald-700 active:scale-95 text-amber-200 font-bold px-3 py-1.5 rounded-xl border border-emerald-600 text-sm md:text-base flex items-center gap-1 transition">
+                    <i class="fa-solid font-mono text-base">A+</i>
+                    <span class="hidden md:inline" id="fontSizeLabel">字體:大</span>
+                </button>
+
+                <!-- Audio SFX Toggle -->
+                <button id="sfxBtn" onclick="toggleSFX()" title="開關音效" class="bg-emerald-800 hover:bg-emerald-700 active:scale-95 text-amber-200 font-bold px-3 py-1.5 rounded-xl border border-emerald-600 text-sm md:text-base flex items-center gap-1 transition">
+                    <i class="fa-solid fa-volume-high" id="sfxIcon"></i>
+                    <span class="hidden md:inline">音效</span>
+                </button>
+
+                <!-- Speech Voice Toggle -->
+                <button id="voiceBtn" onclick="toggleVoice()" title="語音讀字" class="bg-emerald-800 hover:bg-emerald-700 active:scale-95 text-amber-200 font-bold px-3 py-1.5 rounded-xl border border-emerald-600 text-sm md:text-base flex items-center gap-1 transition">
+                    <i class="fa-solid fa-comment-dots" id="voiceIcon"></i>
+                    <span class="hidden md:inline" id="voiceLabel">朗讀:開</span>
+                </button>
+
+                <!-- High Contrast Theme Switcher -->
+                <button onclick="toggleTheme()" title="切換背景主題" class="bg-emerald-800 hover:bg-emerald-700 active:scale-95 text-amber-200 font-bold px-3 py-1.5 rounded-xl border border-emerald-600 text-sm md:text-base transition">
+                    <i class="fa-solid fa-palette"></i>
+                </button>
+
+                <!-- Main Menu Button -->
+                <button onclick="goToMenu()" class="bg-amber-500 hover:bg-amber-400 active:scale-95 text-emerald-950 font-black px-4 py-1.5 rounded-xl shadow border border-amber-300 text-sm md:text-base transition">
+                    <i class="fa-solid fa-house mr-1"></i>選單
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow flex items-center justify-center p-3 md:p-6">
+        
+        <!-- ================= PAGE 1: MAIN MENU ================= -->
+        <section id="menuPage" class="w-full max-w-4xl bg-emerald-900/90 border-4 border-amber-400/80 rounded-3xl p-6 md:p-10 shadow-2xl text-center backdrop-blur-sm relative overflow-hidden">
+            
+            <div class="inline-block bg-amber-400/20 text-amber-300 font-bold px-4 py-1 rounded-full border border-amber-400/40 text-sm md:text-base mb-4">
+                <i class="fa-solid fa-brain text-amber-400 mr-2"></i>社區長者視知覺健腦遊戲
+            </div>
+
+            <h2 class="text-3xl md:text-5xl font-black text-amber-300 mb-3 tracking-wide drop-shadow-md">
+                漢字眼力大考驗
+            </h2>
+            <p class="text-emerald-100 text-base md:text-xl max-w-2xl mx-auto mb-8 leading-relaxed">
+                在許多形狀相似的漢字中，找到唯一的「特別字」！<br class="hidden sm:inline">多動腦、練眼力，預防失智、保持大腦年輕快樂！
+            </p>
+
+            <!-- Mode Selection Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8 max-w-3xl mx-auto">
+                
+                <!-- Solo Challenge -->
+                <button onclick="startGame('challenge')" class="group bg-gradient-to-b from-amber-400 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-emerald-950 p-6 rounded-2xl shadow-xl border-2 border-amber-200 transition transform hover:-translate-y-1 active:translate-y-0 text-left relative overflow-hidden">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="w-12 h-12 bg-emerald-950/10 rounded-xl flex items-center justify-center text-2xl font-black text-emerald-950">
+                            <i class="fa-solid fa-trophy"></i>
+                        </span>
+                        <span class="bg-emerald-950/20 text-emerald-950 text-xs font-bold px-2.5 py-1 rounded-full">關卡挑戰</span>
+                    </div>
+                    <h3 class="text-2xl font-black mb-1">闖關模式</h3>
+                    <p class="text-emerald-950/80 text-sm leading-snug">倒數計時挑戰，隨關卡提升難度，贏取健腦獎牌！</p>
+                </button>
+
+                <!-- Zen Practice -->
+                <button onclick="startGame('practice')" class="group bg-gradient-to-b from-emerald-600 to-emerald-800 hover:from-emerald-500 hover:to-emerald-700 text-white p-6 rounded-2xl shadow-xl border-2 border-emerald-400 transition transform hover:-translate-y-1 active:translate-y-0 text-left relative overflow-hidden">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center text-2xl text-amber-300">
+                            <i class="fa-solid fa-spa"></i>
+                        </span>
+                        <span class="bg-white/20 text-emerald-100 text-xs font-bold px-2.5 py-1 rounded-full">無時間壓力</span>
+                    </div>
+                    <h3 class="text-2xl font-black text-amber-300 mb-1">休閒練習</h3>
+                    <p class="text-emerald-100 text-sm leading-snug">沒有倒數時間限制，隨心所欲輕鬆動腦，附帶免費提示。</p>
+                </button>
+
+                <!-- Team PK Competition -->
+                <button onclick="startGame('team')" class="group bg-gradient-to-b from-red-600 to-red-800 hover:from-red-500 hover:to-red-700 text-white p-6 rounded-2xl shadow-xl border-2 border-red-400 transition transform hover:-translate-y-1 active:translate-y-0 text-left relative overflow-hidden">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center text-2xl text-yellow-300">
+                            <i class="fa-solid fa-people-group"></i>
+                        </span>
+                        <span class="bg-white/20 text-red-100 text-xs font-bold px-2.5 py-1 rounded-full">社區團體熱鬧組</span>
+                    </div>
+                    <h3 class="text-2xl font-black text-yellow-300 mb-1">社區團體 PK</h3>
+                    <p class="text-red-100 text-sm leading-snug">紅隊 vs 藍隊分組比分，樂齡課堂帶領活動最佳幫手！</p>
+                </button>
+            </div>
+
+            <!-- Senior Guide Note -->
+            <div class="bg-emerald-950/60 rounded-2xl p-4 text-left border border-emerald-700/60 flex items-start gap-3">
+                <i class="fa-solid fa-circle-info text-amber-400 text-xl mt-0.5"></i>
+                <div class="text-sm text-emerald-200 leading-relaxed">
+                    <strong class="text-amber-300">帶領人貼心提示：</strong> 遊戲進行時，建議引導長者先大聲朗讀混淆字，再仔細觀察筆劃細節（例如「日」與「目」、「子」與「孓」）。答對後可閱讀「注音與造詞」進行語言復健哦！
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= PAGE 2: GAME BOARD ================= -->
+        <section id="gamePage" class="hidden w-full max-w-4xl flex flex-col items-center">
+            
+            <!-- Top Status Dashboard -->
+            <div class="w-full bg-emerald-900/90 border-2 border-amber-400/80 rounded-2xl p-4 mb-4 shadow-xl flex flex-wrap items-center justify-between gap-3 backdrop-blur-sm">
+                
+                <!-- Level Info -->
+                <div class="flex items-center gap-3">
+                    <span class="bg-amber-400 text-emerald-950 font-black px-3 py-1 rounded-xl text-lg md:text-xl shadow">
+                        第 <span id="currentLevelTxt">1</span> / <span id="totalLevelTxt">10</span> 關
+                    </span>
+                    <span class="text-amber-200 text-base md:text-lg font-bold" id="levelDifficultyTxt">
+                        【難度：入門】
+                    </span>
+                </div>
+
+                <!-- Timer Display (Visible in Challenge Mode) -->
+                <div id="timerContainer" class="flex items-center gap-2 bg-emerald-950/80 border border-amber-500/50 px-4 py-1.5 rounded-xl">
+                    <i class="fa-solid fa-stopwatch text-amber-400 text-xl animate-pulse"></i>
+                    <span class="text-sm text-emerald-200 font-bold">剩餘時間：</span>
+                    <span id="timerTxt" class="text-2xl font-black font-mono text-amber-300">15</span>
+                    <span class="text-sm text-emerald-200">秒</span>
+                </div>
+
+                <!-- Team PK Scoreboard (Visible only in Team Mode) -->
+                <div id="teamScoreboard" class="hidden flex items-center gap-4 bg-emerald-950/80 border border-amber-500/50 px-4 py-1.5 rounded-xl">
+                    <div id="redTeamBadge" class="flex items-center gap-1 px-3 py-0.5 rounded-lg bg-red-600/40 text-red-200 border border-red-500">
+                        <span class="font-bold">紅隊:</span>
+                        <span id="redScoreTxt" class="font-black text-xl text-red-300">0</span>
+                    </div>
+                    <div id="blueTeamBadge" class="flex items-center gap-1 px-3 py-0.5 rounded-lg bg-blue-600/40 text-blue-200 border border-blue-500">
+                        <span class="font-bold">藍隊:</span>
+                        <span id="blueScoreTxt" class="font-black text-xl text-blue-300">0</span>
+                    </div>
+                    <div class="text-xs text-amber-300 font-bold ml-1" id="turnIndicator">
+                        輪到：<span class="text-red-400">紅隊</span>
+                    </div>
+                </div>
+
+                <!-- Action Controls -->
+                <div class="flex items-center gap-2">
+                    <button id="hintBtn" onclick="useHint()" class="bg-yellow-500 hover:bg-yellow-400 active:scale-95 text-emerald-950 font-black px-3.5 py-1.5 rounded-xl shadow border border-yellow-300 text-sm md:text-base flex items-center gap-1 transition">
+                        <i class="fa-solid fa-lightbulb"></i>
+                        <span>提示 (<span id="hintCountTxt">3</span>)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Task Instruction Header -->
+            <div class="w-full bg-emerald-950/70 border border-emerald-600/60 rounded-2xl p-3 mb-4 text-center shadow-md flex items-center justify-center gap-3">
+                <i class="fa-solid fa-magnifying-glass text-amber-400 text-2xl"></i>
+                <div class="text-lg md:text-2xl font-black text-amber-200">
+                    請找出唯一的「<span id="targetHintChar" class="text-amber-400 text-2xl md:text-3xl underline underline-offset-4 font-black">？</span>」字！
+                </div>
+            </div>
+
+            <!-- Dynamic Character Matrix Grid -->
+            <div class="w-full bg-emerald-950/60 border-4 border-amber-400/60 rounded-3xl p-4 sm:p-6 shadow-2xl flex items-center justify-center min-h-[360px]">
+                <div id="charGrid" class="grid gap-2 sm:gap-3 justify-center items-center w-full max-w-2xl mx-auto">
+                    <!-- Dynamic Grid Buttons Injected Here -->
+                </div>
+            </div>
+
+            <!-- Bottom Prompt Bar -->
+            <div id="feedbackBanner" class="w-full text-center mt-4 text-amber-200 text-base md:text-lg font-bold h-8 transition-all">
+                眼到手到，仔細觀察字形細節喔！
+            </div>
+        </section>
+
+        <!-- ================= MODAL: KNOWLEDGE & SUCCESS CARD ================= -->
+        <div id="knowledgeModal" class="hidden fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4">
+            <div class="bg-emerald-900 border-4 border-amber-400 rounded-3xl max-w-lg w-full p-6 shadow-2xl text-center relative animate-bounce-short">
+                
+                <div class="w-20 h-20 bg-amber-400 text-emerald-950 rounded-full flex items-center justify-center text-4xl mx-auto -mt-14 shadow-lg border-4 border-emerald-900">
+                    <i class="fa-solid fa-check"></i>
+                </div>
+
+                <h3 class="text-2xl md:text-3xl font-black text-amber-300 mt-3 mb-1">
+                    恭喜答對了！太厲害了！
+                </h3>
+                <p class="text-emerald-200 text-sm mb-4">大腦敏銳度 +10 分！</p>
+
+                <!-- Vocabulary Details Card -->
+                <div class="bg-emerald-950 rounded-2xl p-4 border border-amber-500/40 text-left mb-6 space-y-3">
+                    <div class="flex items-center justify-between border-b border-emerald-800 pb-2">
+                        <div class="flex items-center gap-3">
+                            <span id="modalChar" class="text-5xl font-black text-amber-400 bg-emerald-900 px-3 py-1 rounded-xl border border-amber-400/50">
+                                孓
+                            </span>
+                            <div>
+                                <div class="text-emerald-100 text-lg font-bold flex items-center gap-2">
+                                    注音：<span id="modalZhuyin" class="text-amber-300 text-xl font-mono">ㄐㄩㄝˊ</span>
+                                </div>
+                                <div class="text-emerald-300 text-sm">
+                                    混淆字：<span id="modalConfusedChar" class="text-white font-bold">子</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="speakCurrentWord()" class="bg-amber-500 hover:bg-amber-400 text-emerald-950 p-3 rounded-xl font-bold transition flex items-center gap-1 shadow">
+                            <i class="fa-solid fa-volume-high text-lg"></i>
+                            <span class="text-xs">朗讀</span>
+                        </button>
+                    </div>
+
+                    <div>
+                        <span class="text-amber-300 font-bold text-sm block mb-0.5">常用造詞與用法：</span>
+                        <p id="modalVocab" class="text-white text-lg font-bold leading-relaxed">
+                            孑孓（蚊子的幼蟲）
+                        </p>
+                    </div>
+
+                    <div class="bg-emerald-900/60 p-2.5 rounded-xl border border-emerald-700/50">
+                        <span class="text-amber-400 font-bold text-xs block mb-0.5">💡 眼力辨識絕招：</span>
+                        <p id="modalTip" class="text-emerald-100 text-sm leading-snug">
+                            「孓」字下半部劃向左撇出鉤，中間沒有橫劃，與「子」字不同。
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Action Button -->
+                <button onclick="nextLevel()" class="w-full bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 active:scale-95 text-emerald-950 font-black text-xl py-3.5 rounded-2xl shadow-xl transition border-2 border-amber-200 flex items-center justify-center gap-2">
+                    <span>挑戰下一關</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- ================= MODAL: GAME OVER / VICTORY SUMMARY ================= -->
+        <div id="summaryModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+            <div class="bg-emerald-900 border-4 border-amber-400 rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl text-center">
+                
+                <div class="text-6xl text-amber-400 mb-3 animate-bounce">
+                    <i id="summaryIcon" class="fa-solid fa-award"></i>
+                </div>
+
+                <h3 id="summaryTitle" class="text-3xl font-black text-amber-300 mb-2">
+                    完成全部挑戰！
+                </h3>
+                <p id="summarySubtitle" class="text-emerald-100 text-lg mb-6">
+                    您是社區名副其實的「健腦大師」！
+                </p>
+
+                <!-- Stats Box -->
+                <div class="bg-emerald-950/80 rounded-2xl p-4 border border-amber-500/40 mb-6 space-y-3">
+                    <div class="flex justify-between items-center text-lg">
+                        <span class="text-emerald-200">通過關卡：</span>
+                        <span id="sumClearedTxt" class="text-amber-300 font-black text-xl">10 / 10</span>
+                    </div>
+                    <div class="flex justify-between items-center text-lg">
+                        <span class="text-emerald-200">眼力榮譽稱號：</span>
+                        <span id="sumRankTxt" class="text-amber-400 font-black text-xl">🥇 特級金眼睛</span>
+                    </div>
+                    <div id="teamSummaryBox" class="hidden pt-2 border-t border-emerald-800 flex justify-around text-lg font-bold">
+                        <div class="text-red-300">紅隊：<span id="sumRedScore">0</span> 分</div>
+                        <div class="text-blue-300">藍隊：<span id="sumBlueScore">0</span> 分</div>
+                    </div>
+                </div>
+
+                <div class="flex gap-3">
+                    <button onclick="goToMenu()" class="flex-1 bg-emerald-800 hover:bg-emerald-700 text-amber-200 font-bold py-3 rounded-xl border border-emerald-600 transition">
+                        回到主選單
+                    </button>
+                    <button onclick="restartCurrentGame()" class="flex-1 bg-amber-400 hover:bg-amber-300 text-emerald-950 font-black py-3 rounded-xl shadow border border-amber-200 transition">
+                        再玩一次
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer Credit -->
+    <footer class="w-full text-center py-3 text-xs text-emerald-300/80 bg-emerald-950/90 border-t border-emerald-800/60">
+        【老頑童動動腦】視知覺互動健腦遊戲 ‧ 適用於長者課堂、社區據點與居家活化思維
+    </footer>
+
+    <script>
+        // Comprehensive Question Database designed for senior eyesight & cognitive exercises
+        const LEVELS = [
+            {
+                level: 1,
+                gridSize: 3, // 3x3 = 9 cards
+                baseChar: "子",
+                targetChar: "孓",
+                zhuyin: "ㄐㄩㄝˊ",
+                vocab: "孑孓（蚊子的幼蟲）",
+                tip: "「孓」字下半部劃向左撇出鉤，中間沒有橫劃。",
+                timeLimit: 15,
+                difficulty: "入門暖身"
+            },
+            {
+                level: 2,
+                gridSize: 4, // 4x4 = 16 cards
+                baseChar: "日",
+                targetChar: "目",
+                zhuyin: "ㄇㄨˋ",
+                vocab: "目光、眼睛、題目",
+                tip: "「目」字裡面有兩橫，「日」字裡面只有一橫。",
+                timeLimit: 15,
+                difficulty: "細節觀察"
+            },
+            {
+                level: 3,
+                gridSize: 4,
+                baseChar: "己",
+                targetChar: "已",
+                zhuyin: "ㄧˇ",
+                vocab: "已經、早已、已知",
+                tip: "「己」字上方開口完全打開；「已」字開口半封閉。",
+                timeLimit: 12,
+                difficulty: "開口差異"
+            },
+            {
+                level: 4,
+                gridSize: 4,
+                baseChar: "烏",
+                targetChar: "鳥",
+                zhuyin: "ㄋㄧㄠˇ",
+                vocab: "飛鳥、小鳥、鳥語花香",
+                tip: "「鳥」字的眼中有一點表示眼睛，「烏」字代表黑色黑鴉看不到眼睛。",
+                timeLimit: 12,
+                difficulty: "眼力精準"
+            },
+            {
+                level: 5,
+                gridSize: 5, // 5x5 = 25 cards
+                baseChar: "木",
+                targetChar: "禾",
+                zhuyin: "ㄏㄜˊ",
+                vocab: "禾苗、稻禾、禾木",
+                tip: "「禾」字上方多了一撇，代表結實累累的稻穗。",
+                timeLimit: 12,
+                difficulty: "筆劃辨識"
+            },
+            {
+                level: 6,
+                gridSize: 5,
+                baseChar: "未",
+                targetChar: "末",
+                zhuyin: "ㄇㄛˋ",
+                vocab: "末端、週末、期末",
+                tip: "「未」字上短下長；「末」字上長下短。",
+                timeLimit: 10,
+                difficulty: "長短辨析"
+            },
+            {
+                level: 7,
+                gridSize: 5,
+                baseChar: "申",
+                targetChar: "由",
+                zhuyin: "ㄧㄡˊ",
+                vocab: "自由、理由、由來",
+                tip: "「申」字兩頭出頭；「由」字只有上方出頭。",
+                timeLimit: 10,
+                difficulty: "出頭方向"
+            },
+            {
+                level: 8,
+                gridSize: 5,
+                baseChar: "析",
+                targetChar: "折",
+                zhuyin: "ㄓㄜˊ",
+                vocab: "折疊、折扣、百折不撓",
+                tip: "「折」字左邊是手字旁（扌）；「析」字左邊是木字旁（木）。",
+                timeLimit: 10,
+                difficulty: "部首對比"
+            },
+            {
+                level: 9,
+                gridSize: 6, // 6x6 = 36 cards
+                baseChar: "幸",
+                targetChar: "辛",
+                zhuyin: "ㄒㄧㄣ",
+                vocab: "辛苦、辛辣、辛勤",
+                tip: "「幸」字上方是「土」；「辛」字上方是「立」。",
+                timeLimit: 10,
+                difficulty: "腦力敏捷"
+            },
+            {
+                level: 10,
+                gridSize: 6,
+                baseChar: "競",
+                targetChar: "兢",
+                zhuyin: "ㄐㄧㄥ",
+                vocab: "兢兢業業（形容小心謹慎）",
+                tip: "「競」字下半部是「兄」；「兢」字兩邊都是「克」。",
+                timeLimit: 8,
+                difficulty: "眼力大師"
+            }
+        ];
+
+        // Global Game State
+        let currentGameMode = 'challenge'; // 'challenge', 'practice', 'team'
+        let currentLevelIndex = 0;
+        let hintCount = 3;
+        let timerInterval = null;
+        let timeLeft = 15;
+        let targetGridIndex = -1;
+        let sfxEnabled = true;
+        let speechEnabled = true;
+        let fontSizeMode = 'large'; // 'normal', 'large', 'xlarge'
+        let currentTheme = 'chalkboard'; // 'chalkboard', 'highcontrast'
+
+        // Team Mode State
+        let teamTurn = 'red'; // 'red' or 'blue'
+        let redScore = 0;
+        let blueScore = 0;
+
+        // Web Audio API Sound Synthesizer (No external audio file dependencies)
+        function playSound(type) {
+            if (!sfxEnabled) return;
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                const ctx = new AudioCtx();
+
+                if (type === 'correct') {
+                    // Pleasant rising chime
+                    [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'triangle';
+                        osc.frequency.value = freq;
+                        gain.gain.setValueAtTime(0.2, ctx.currentTime + idx * 0.08);
+                        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.08 + 0.35);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(ctx.currentTime + idx * 0.08);
+                        osc.stop(ctx.currentTime + idx * 0.08 + 0.35);
+                    });
+                } else if (type === 'wrong') {
+                    // Gentle double tone for feedback
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(220, ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(140, ctx.currentTime + 0.25);
+                    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.25);
+                } else if (type === 'click') {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.value = 580;
+                    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.06);
+                } else if (type === 'fanfare') {
+                    // Victory fanfare
+                    [523.25, 659.25, 783.99, 1046.50, 1318.51].forEach((freq, idx) => {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'triangle';
+                        osc.frequency.value = freq;
+                        gain.gain.setValueAtTime(0.25, ctx.currentTime + idx * 0.1);
+                        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.1 + 0.5);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(ctx.currentTime + idx * 0.1);
+                        osc.stop(ctx.currentTime + idx * 0.1 + 0.5);
+                    });
+                }
+            } catch (e) {
+                console.log("Audio not supported or allowed", e);
+            }
+        }
+
+        // Text-to-speech for elderly reading assistance
+        function speakText(text) {
+            if (!speechEnabled || !('speechSynthesis' in window)) return;
+            window.speechSynthesis.cancel(); // Stop active speech
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'zh-TW';
+            utterance.rate = 0.85; // Slower rate for clear comprehension
+            utterance.pitch = 1.0;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function speakCurrentWord() {
+            const data = LEVELS[currentLevelIndex];
+            speakText(`${data.targetChar}，注音${data.zhuyin}，${data.vocab}`);
+        }
+
+        // Navigation Logic
+        function goToMenu() {
+            playSound('click');
+            clearInterval(timerInterval);
+            document.getElementById('menuPage').classList.remove('hidden');
+            document.getElementById('gamePage').classList.add('hidden');
+            document.getElementById('knowledgeModal').classList.add('hidden');
+            document.getElementById('summaryModal').classList.add('hidden');
+        }
+
+        function startGame(mode) {
+            playSound('click');
+            currentGameMode = mode;
+            currentLevelIndex = 0;
+            hintCount = 3;
+            redScore = 0;
+            blueScore = 0;
+            teamTurn = 'red';
+
+            document.getElementById('menuPage').classList.add('hidden');
+            document.getElementById('gamePage').classList.remove('hidden');
+            document.getElementById('hintCountTxt').innerText = hintCount;
+
+            // Mode specific UI adjustments
+            const timerBox = document.getElementById('timerContainer');
+            const teamBox = document.getElementById('teamScoreboard');
+
+            if (mode === 'practice') {
+                timerBox.classList.add('hidden');
+                teamBox.classList.add('hidden');
+            } else if (mode === 'team') {
+                timerBox.classList.add('hidden');
+                teamBox.classList.remove('hidden');
+                updateTeamScoreUI();
+            } else {
+                // Challenge
+                timerBox.classList.remove('hidden');
+                teamBox.classList.add('hidden');
+            }
+
+            loadLevel(currentLevelIndex);
+        }
+
+        function restartCurrentGame() {
+            startGame(currentGameMode);
+        }
+
+        // Core Game Engine Functions
+        function loadLevel(index) {
+            const levelData = LEVELS[index];
+            document.getElementById('currentLevelTxt').innerText = levelData.level;
+            document.getElementById('totalLevelTxt').innerText = LEVELS.length;
+            document.getElementById('levelDifficultyTxt').innerText = `【難度：${levelData.difficulty}】`;
+            document.getElementById('targetHintChar').innerText = levelData.targetChar;
+            document.getElementById('feedbackBanner').innerText = "眼到手到，仔細觀察字形細節喔！";
+
+            const gridContainer = document.getElementById('charGrid');
+            gridContainer.innerHTML = '';
+
+            const totalCards = levelData.gridSize * levelData.gridSize;
+            targetGridIndex = Math.floor(Math.random() * totalCards);
+
+            // Dynamically calculate grid template columns
+            gridContainer.style.gridTemplateColumns = `repeat(${levelData.gridSize}, minmax(0, 1fr))`;
+
+            // Calculate font sizing based on grid dimension
+            let fontSizeClass = 'text-3xl sm:text-4xl md:text-5xl';
+            if (levelData.gridSize === 5) fontSizeClass = 'text-2xl sm:text-3xl md:text-4xl';
+            if (levelData.gridSize === 6) fontSizeClass = 'text-xl sm:text-2xl md:text-3xl';
+
+            // Generate character cards
+            for (let i = 0; i < totalCards; i++) {
+                const isTarget = (i === targetGridIndex);
+                const charToShow = isTarget ? levelData.targetChar : levelData.baseChar;
+
+                const btn = document.createElement('button');
+                btn.className = `aspect-square bg-emerald-900/80 hover:bg-emerald-800 active:scale-95 border-2 border-amber-400/40 hover:border-amber-400 rounded-2xl flex items-center justify-center font-black text-yellow-300 shadow-md transition-all duration-150 ${fontSizeClass}`;
+                btn.innerText = charToShow;
+                btn.setAttribute('data-index', i);
+                btn.onclick = () => handleCardClick(i, isTarget, btn);
+
+                gridContainer.appendChild(btn);
+            }
+
+            // Start Timer if Challenge mode
+            if (currentGameMode === 'challenge') {
+                startTimer(levelData.timeLimit);
+            }
+
+            // Speak Target Hint if Voice enabled
+            if (speechEnabled) {
+                setTimeout(() => {
+                    speakText(`請找出${levelData.targetChar}字`);
+                }, 300);
+            }
+        }
+
+        function startTimer(seconds) {
+            clearInterval(timerInterval);
+            timeLeft = seconds;
+            document.getElementById('timerTxt').innerText = timeLeft;
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timerTxt').innerText = timeLeft;
+
+                if (timeLeft <= 3 && timeLeft > 0) {
+                    playSound('click');
+                }
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    handleTimeOut();
+                }
+            }, 1000);
+        }
+
+        function handleCardClick(idx, isTarget, btnElem) {
+            if (isTarget) {
+                // Correct Answer!
+                clearInterval(timerInterval);
+                playSound('correct');
+                btnElem.classList.add('correct-active');
+
+                // Record Team Score if in Team mode
+                if (currentGameMode === 'team') {
+                    if (teamTurn === 'red') redScore += 10;
+                    else blueScore += 10;
+                    updateTeamScoreUI();
+                }
+
+                // Show Knowledge Modal
+                setTimeout(() => {
+                    showKnowledgeModal();
+                }, 600);
+
+            } else {
+                // Wrong Answer
+                playSound('wrong');
+                btnElem.classList.add('shake-effect', 'border-red-500', 'bg-red-950/60');
+                document.getElementById('feedbackBanner').innerText = "差一點點喔！再仔細看一次~";
+
+                setTimeout(() => {
+                    btnElem.classList.remove('shake-effect', 'border-red-500', 'bg-red-950/60');
+                }, 500);
+
+                // Switch Team turn on wrong click in Team mode
+                if (currentGameMode === 'team') {
+                    teamTurn = (teamTurn === 'red') ? 'blue' : 'red';
+                    updateTeamScoreUI();
+                }
+            }
+        }
+
+        function handleTimeOut() {
+            playSound('wrong');
+            document.getElementById('feedbackBanner').innerText = "時間到囉！別灰心，再試試看！";
+            
+            // Highlight the target to show answer
+            const gridContainer = document.getElementById('charGrid');
+            const targetBtn = gridContainer.children[targetGridIndex];
+            if (targetBtn) {
+                targetBtn.classList.add('hint-active');
+            }
+
+            setTimeout(() => {
+                showKnowledgeModal(true); // timeout mode
+            }, 1200);
+        }
+
+        function useHint() {
+            if (hintCount <= 0) {
+                document.getElementById('feedbackBanner').innerText = "提示次數已用完囉！加油！";
+                return;
+            }
+            hintCount--;
+            document.getElementById('hintCountTxt').innerText = hintCount;
+            playSound('click');
+
+            const gridContainer = document.getElementById('charGrid');
+            const targetBtn = gridContainer.children[targetGridIndex];
+            if (targetBtn) {
+                targetBtn.classList.add('hint-active');
+                setTimeout(() => {
+                    targetBtn.classList.remove('hint-active');
+                }, 2000);
+            }
+            document.getElementById('feedbackBanner').innerText = "發光的按鈕就是特別字喔！";
+        }
+
+        function updateTeamScoreUI() {
+            document.getElementById('redScoreTxt').innerText = redScore;
+            document.getElementById('blueScoreTxt').innerText = blueScore;
+
+            const turnTxt = document.getElementById('turnIndicator');
+            if (teamTurn === 'red') {
+                turnTxt.innerHTML = '輪到：<span class="text-red-400 font-black">紅隊</span>';
+            } else {
+                turnTxt.innerHTML = '輪到：<span class="text-blue-400 font-black">藍隊</span>';
+            }
+        }
+
+        function showKnowledgeModal(isTimeout = false) {
+            const data = LEVELS[currentLevelIndex];
+            document.getElementById('modalChar').innerText = data.targetChar;
+            document.getElementById('modalZhuyin').innerText = data.zhuyin;
+            document.getElementById('modalConfusedChar').innerText = data.baseChar;
+            document.getElementById('modalVocab').innerText = data.vocab;
+            document.getElementById('modalTip').innerText = data.tip;
+
+            document.getElementById('knowledgeModal').classList.remove('hidden');
+
+            if (speechEnabled) {
+                speakCurrentWord();
+            }
+
+            triggerConfetti();
+        }
+
+        function nextLevel() {
+            playSound('click');
+            document.getElementById('knowledgeModal').classList.add('hidden');
+            currentLevelIndex++;
+
+            if (currentLevelIndex < LEVELS.length) {
+                loadLevel(currentLevelIndex);
+            } else {
+                // Game Finished!
+                showSummaryModal();
+            }
+        }
+
+        function showSummaryModal() {
+            playSound('fanfare');
+            document.getElementById('summaryModal').classList.remove('hidden');
+            document.getElementById('sumClearedTxt').innerText = `${currentLevelIndex} / ${LEVELS.length}`;
+
+            const teamBox = document.getElementById('teamSummaryBox');
+            if (currentGameMode === 'team') {
+                teamBox.classList.remove('hidden');
+                document.getElementById('sumRedScore').innerText = redScore;
+                document.getElementById('sumBlueScore').innerText = blueScore;
+
+                if (redScore > blueScore) {
+                    document.getElementById('summaryTitle').innerText = "🏆 恭喜 紅隊 獲勝！";
+                } else if (blueScore > redScore) {
+                    document.getElementById('summaryTitle').innerText = "🏆 恭喜 藍隊 獲勝！";
+                } else {
+                    document.getElementById('summaryTitle').innerText = "🤝 兩隊平手，皆大歡喜！";
+                }
+            } else {
+                teamBox.classList.add('hidden');
+                document.getElementById('summaryTitle').innerText = "完成全部健腦挑戰！";
+            }
+
+            triggerConfetti();
+        }
+
+        // Accessibility & Settings Toggles
+        function toggleFontSize() {
+            playSound('click');
+            const body = document.getElementById('appBody');
+            const label = document.getElementById('fontSizeLabel');
+
+            if (fontSizeMode === 'normal') {
+                fontSizeMode = 'large';
+                body.style.fontSize = '1.1rem';
+                label.innerText = '字體:大';
+            } else if (fontSizeMode === 'large') {
+                fontSizeMode = 'xlarge';
+                body.style.fontSize = '1.25rem';
+                label.innerText = '字體:特大';
+            } else {
+                fontSizeMode = 'normal';
+                body.style.fontSize = '1rem';
+                label.innerText = '字體:標準';
+            }
+        }
+
+        function toggleSFX() {
+            sfxEnabled = !sfxEnabled;
+            const icon = document.getElementById('sfxIcon');
+            if (sfxEnabled) {
+                icon.className = 'fa-solid fa-volume-high';
+                playSound('click');
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark text-red-400';
+            }
+        }
+
+        function toggleVoice() {
+            speechEnabled = !speechEnabled;
+            const label = document.getElementById('voiceLabel');
+            const icon = document.getElementById('voiceIcon');
+
+            if (speechEnabled) {
+                label.innerText = '朗讀:開';
+                icon.className = 'fa-solid fa-comment-dots';
+                speakText('語音朗讀已開啟');
+            } else {
+                label.innerText = '朗讀:關';
+                icon.className = 'fa-solid fa-comment-slash text-red-400';
+                if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+            }
+        }
+
+        function toggleTheme() {
+            playSound('click');
+            const body = document.getElementById('appBody');
+            if (currentTheme === 'chalkboard') {
+                currentTheme = 'highcontrast';
+                body.className = 'high-contrast-bg min-h-screen text-white flex flex-col justify-between overflow-x-hidden';
+            } else {
+                currentTheme = 'chalkboard';
+                body.className = 'chalkboard-bg min-h-screen text-white flex flex-col justify-between overflow-x-hidden';
+            }
+        }
+
+        // Visual Celebrations - Particle Confetti System
+        function triggerConfetti() {
+            const canvas = document.getElementById('confettiCanvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const particles = [];
+            const colors = ['#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6', '#ffffff'];
+
+            for (let i = 0; i < 70; i++) {
+                particles.push({
+                    x: canvas.width / 2,
+                    y: canvas.height / 2,
+                    vx: (Math.random() - 0.5) * 14,
+                    vy: (Math.random() - 0.7) * 14,
+                    size: Math.random() * 8 + 4,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    life: 100
+                });
+            }
+
+            function animateConfetti() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                let active = false;
+
+                particles.forEach(p => {
+                    if (p.life > 0) {
+                        active = true;
+                        p.x += p.vx;
+                        p.y += p.vy;
+                        p.vy += 0.2; // gravity
+                        p.life--;
+
+                        ctx.fillStyle = p.color;
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                });
+
+                if (active) {
+                    requestAnimationFrame(animateConfetti);
+                } else {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+            }
+
+            animateConfetti();
+        }
+
+        // Window resize listener
+        window.addEventListener('resize', () => {
+            const canvas = document.getElementById('confettiCanvas');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+    </script>
+</body>
+</html>
